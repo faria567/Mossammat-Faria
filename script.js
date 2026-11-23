@@ -427,3 +427,92 @@ if (inquiryForm) {
       `mailto:mossammatfaria1999@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   });
 }
+
+/* ==========================================================================
+   Redesign v4 — light motion (scroll progress, reveal, counters, spotlight)
+   ========================================================================== */
+(() => {
+  const root = document.documentElement;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Scroll progress bar + header state
+  const bar = document.createElement("div");
+  bar.className = "scroll-progress";
+  document.body.prepend(bar);
+  const header = document.querySelector(".site-header");
+  const onScroll = () => {
+    const max = root.scrollHeight - window.innerHeight;
+    bar.style.transform = "scaleX(" + (max > 0 ? window.scrollY / max : 0) + ")";
+    if (header) header.classList.toggle("is-scrolled", window.scrollY > 12);
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  // Cursor spotlight on cards
+  document.addEventListener("pointermove", (e) => {
+    const c = e.target.closest && e.target.closest(".svc-card,.framework-card,.case-card,.skill-block");
+    if (!c) return;
+    const r = c.getBoundingClientRect();
+    c.style.setProperty("--mx", e.clientX - r.left + "px");
+    c.style.setProperty("--my", e.clientY - r.top + "px");
+  }, { passive: true });
+
+  // Active nav link while scrolling
+  const navLinks = [...document.querySelectorAll(".nav-links a")];
+  const secObs = new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      if (!en.isIntersecting) return;
+      navLinks.forEach((a) => a.classList.toggle("is-active", a.getAttribute("href") === "#" + en.target.id));
+    });
+  }, { rootMargin: "-45% 0px -50% 0px" });
+  ["skills", "case-studies", "education", "services", "framework", "faq"].forEach((id) => {
+    const s = document.getElementById(id);
+    if (s) secObs.observe(s);
+  });
+
+  if (reduce) return;
+  root.classList.add("js-anim");
+
+  // Scroll reveal with gentle stagger
+  const sel = ".section-head,.skill-block,.case-card,.edu-entry,.cert-heading,.cred-item,.svc-card,.framework-card,.faq-item,.proof-group-head,.proof-card,.filter-tabs,.footer-grid,.proof-strip .cell";
+  const items = [...document.querySelectorAll(sel)];
+  items.forEach((el) => {
+    const sibs = [...el.parentElement.children].filter((c) => c.matches(sel));
+    el.style.setProperty("--d", (sibs.indexOf(el) % 6) * 70 + "ms");
+    el.classList.add("reveal");
+  });
+  const revObs = new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      if (en.isIntersecting) {
+        en.target.classList.add("in");
+        revObs.unobserve(en.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
+  items.forEach((el) => revObs.observe(el));
+
+  // Count-up for the proof strip numbers
+  document.querySelectorAll(".proof-strip .cell b").forEach((b) => {
+    const m = b.textContent.match(/[\d,]+/);
+    if (!m) return;
+    const target = parseInt(m[0].replace(/,/g, ""), 10);
+    const pre = b.textContent.slice(0, m.index);
+    const post = b.textContent.slice(m.index + m[0].length);
+    const fmt = (n) => (m[0].indexOf(",") > -1 ? n.toLocaleString("en-US") : String(n));
+    b.textContent = pre + fmt(0) + post;
+    const cObs = new IntersectionObserver((es) => {
+      if (!es[0].isIntersecting) return;
+      cObs.disconnect();
+      const t0 = performance.now();
+      const dur = 1400;
+      const step = (t) => {
+        const p = Math.min(1, (t - t0) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        b.textContent = pre + fmt(Math.round(target * eased)) + post;
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }, { threshold: 0.6 });
+    cObs.observe(b);
+  });
+})();
