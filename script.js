@@ -516,3 +516,24 @@ if (inquiryForm) {
     cObs.observe(b);
   });
 })();
+
+/* Hero: subtle mouse parallax (photo card + glow) */
+(() => {
+  const hero = document.querySelector(".hero");
+  const wrap = document.querySelector(".hero-photo-wrap");
+  if (!hero || !wrap || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (!window.matchMedia("(hover: hover)").matches) return;
+  hero.addEventListener("pointermove", (e) => {
+    const r = hero.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    wrap.style.setProperty("--px", x * 18 + "px");
+    wrap.style.setProperty("--py", y * 14 + "px");
+    hero.style.setProperty("--bx", x * -50 + "px");
+    hero.style.setProperty("--by", y * -40 + "px");
+  }, { passive: true });
+  hero.addEventListener("pointerleave", () => {
+    wrap.style.setProperty("--px", "0px");
+    wrap.style.setProperty("--py", "0px");
+  });
+})();
